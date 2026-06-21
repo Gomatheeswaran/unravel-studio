@@ -1,10 +1,20 @@
 import "dotenv/config";
+import { execSync } from "child_process";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
 import path from "path";
 
 const dbPath = path.join(process.cwd(), "dev.db");
+
+// Run migrations first so tables exist before we try to insert
+console.log("Running migrations...");
+try {
+  execSync("npx prisma migrate deploy", { stdio: "inherit" });
+} catch {
+  // migrate deploy may exit non-zero if already up-to-date; continue anyway
+}
+
 const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
 const prisma = new PrismaClient({ adapter } as never) as unknown as {
   user: { upsert: (...args: unknown[]) => Promise<unknown> };
@@ -25,6 +35,7 @@ async function main() {
       role: "admin",
     },
   });
+  console.log("✓ Admin user: admin@unravelstudio.com");
 
   const packages = [
     {
@@ -85,10 +96,10 @@ async function main() {
       create: pkg,
     });
   }
-
-  console.log("Seed complete: admin user + 3 service packages created.");
+  console.log("✓ Service packages: basic, standard, premium");
+  console.log("\nSeed complete.");
 }
 
 main()
-  .catch(console.error)
+  .catch((e) => { console.error("Seed failed:", e); process.exit(1); })
   .finally(() => prisma.$disconnect());
