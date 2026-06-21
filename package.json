@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "ts-node --project tsconfig.json -e \"require('dotenv').config({path:'.env.local'})\" prisma/seed.ts",
+    "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {
