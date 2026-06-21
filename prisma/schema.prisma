@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        Order[]
+  cartItems     CartItem[]
+  purchases     Purchase[]
+  sessions      Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  price       Float    @default(0)
+  isFree      Boolean  @default(false)
+  category    String?
+  tags        String?
+  thumbnail   String
+  images      String   @default("[]")
+  model3dUrl  String?
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files         ProductFile[]
+  cartItems     CartItem[]
+  purchaseItems PurchaseItem[]
+}
+
+model ProductFile {
+  id        String  @id @default(cuid())
+  productId String
+  fileName  String
+  filePath  String
+  fileType  String
+  fileSize  Int
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ServicePackage {
+  id           String   @id @default(cuid())
+  tier         String   @unique
+  name         String
+  price        Float
+  description  String
+  workCoverage String   @default("[]")
+  deliveryDays Int      @default(7)
+  revisions    Int      @default(2)
+  published    Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
+
+  orders       Order[]
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  userId         String
+  packageId      String
+  status         String   @default("pending")
+  projectDetails String   @default("{}")
+  totalAmount    Float
+  paymentId      String?
+  adminNotes     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id])
+  package        ServicePackage @relation(fields: [packageId], references: [id])
+  referenceFiles OrderFile[]
+}
+
+model OrderFile {
+  id        String @id @default(cuid())
+  orderId   String
+  fileName  String
+  filePath  String
+  fileType  String
+  fileSize  Int
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  addedAt   DateTime @default(now())
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Purchase {
+  id          String   @id @default(cuid())
+  userId      String
+  paymentId   String?
+  totalAmount Float
+  createdAt   DateTime @default(now())
+
+  user        User           @relation(fields: [userId], references: [id])
+  items       PurchaseItem[]
+}
+
+model PurchaseItem {
+  id              String @id @default(cuid())
+  purchaseId      String
+  productId       String
+  priceAtPurchase Float
+
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+}
